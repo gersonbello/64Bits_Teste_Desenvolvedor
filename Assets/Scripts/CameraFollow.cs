@@ -4,15 +4,19 @@ using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    [SerializeField]
+    private Transform target;
 
-    // Update is called once per frame
-    void Update()
+    [SerializeField]
+    private float cameraMoveSpeed;
+
+    [SerializeField]
+    private Vector3 cameraOffset;
+    private Vector3 desiredPosition;
+
+    private void FixedUpdate()
     {
-        
+        desiredPosition = target.transform.position + cameraOffset;
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, cameraMoveSpeed);
     }
 }
