@@ -11,9 +11,11 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
     [SerializeField] [Tooltip("Velocidade em que o personagem se move")]
     private float moveSpeed;
-    [SerializeField]
-    [Tooltip("Velocidade em que o personagem se rotaciona")]
+    [SerializeField] [Tooltip("Velocidade em que o personagem se rotaciona")]
     private float rotateSpeed;
+
+    [SerializeField] [Tooltip("Força do soco")]
+    private float punchForce;
 
     private Vector2 joystickAxis;
     private Vector3 moveDirection;
@@ -22,6 +24,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
     {
         charController = GetComponent<CharacterController>();
         charAnimator = GetComponent<Animator>();
+        Physics.IgnoreLayerCollision(6, 3);
     }
     private void Update()
     {
@@ -66,5 +69,18 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private void SetAnimatorParameters()
     {
         charAnimator.SetFloat("axisDistance", Vector2.Distance(joystickAxis, new Vector2()));
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (hit.transform.CompareTag("Enemy"))
+        {
+            charAnimator.SetTrigger("punch");
+            Rigidbody enemyRig = hit.transform.GetComponent<Rigidbody>();
+            enemyRig.isKinematic = false;
+            enemyRig.AddForce((transform.forward + Vector3.up * .5f) * punchForce);
+            hit.transform.gameObject.layer = 3;
+            
+        }
     }
 }
