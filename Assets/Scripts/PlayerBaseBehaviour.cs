@@ -7,14 +7,14 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private CharacterController charController;
     private Animator charAnimator;
 
-    [Header("Configurações")] [Space(5)]
+    [Header("Configuraï¿½ï¿½es")] [Space(5)]
 
     [SerializeField] [Tooltip("Velocidade em que o personagem se move")]
     private float moveSpeed;
     [SerializeField] [Tooltip("Velocidade em que o personagem se rotaciona")]
     private float rotateSpeed;
 
-    [SerializeField] [Tooltip("Força do soco")]
+    [SerializeField] [Tooltip("Forï¿½a do soco")]
     private float punchForce;
 
     private Vector2 joystickAxis;
@@ -47,7 +47,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
     }
 
     /// <summary>
-    /// Retorna a direção de movimento do personagem baseado no joystick
+    /// Retorna a direï¿½ï¿½o de movimento do personagem baseado no joystick
     /// </summary>
     private Vector3 GetMovementDirection()
     {
@@ -57,7 +57,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
         return moveDirection;
     }
     /// <summary>
-    /// Rotaciona o personagem na direção desejada na velocidade configurada
+    /// Rotaciona o personagem na direï¿½ï¿½o desejada na velocidade configurada
     /// </summary>
     /// <param name="directionToRotate"></param>
     private void RotateCharacterToDirection(Vector3 directionToRotate)
@@ -73,14 +73,21 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
+    }
+
+    private void OnTriggerEnter(Collider hit)
+    {
         if (hit.transform.CompareTag("Enemy"))
         {
             charAnimator.SetTrigger("punch");
-            Rigidbody enemyRig = hit.transform.GetComponent<Rigidbody>();
-            enemyRig.isKinematic = false;
-            enemyRig.AddForce((transform.forward + Vector3.up * .5f) * punchForce);
-            hit.transform.gameObject.layer = 3;
-            
+            hit.transform.GetComponent<Animator>().enabled = false;
+            Rigidbody [] enemyRigs = hit.transform.GetComponentsInChildren<Rigidbody>();
+            foreach (Rigidbody eRig  in enemyRigs)
+            {
+                eRig.isKinematic = false;
+                eRig.AddForce((transform.forward + Vector3.up * .5f) * punchForce);
+                hit.transform.gameObject.layer = 3;
+            }
         }
     }
 }
