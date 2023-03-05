@@ -6,6 +6,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
 {
     private CharacterController charController;
     private Animator charAnimator;
+    private CameraFollow mainCamera;
 
     [Header("Player Settings")]
     [Space(5)]
@@ -40,18 +41,30 @@ public class PlayerBaseBehaviour : MonoBehaviour
     [Tooltip("Velocidade em que o inimigo é adicionado à pilha")]
     private float stackSpeed;
 
+    [SerializeField]
+    [Tooltip("Velocidade em que a pilha de inimigos se movimenta e recebe inércia")]
+    private float stackMovementSpeed;
+
+    [SerializeField]
+    [Tooltip("Distância entre objetos da pilha")]
+    private float stackDistance;
+
     private Vector2 joystickAxis;
     private Vector3 moveDirection;
 
 
     private List<Transform> enemyToStack = new List<Transform>();
-    private Stack<Transform> enemyStack = new Stack<Transform>();
+
+    [SerializeField]
+    private List<Transform> enemyStack = new List<Transform>();
 
     private void Awake()
     {
         charController = GetComponent<CharacterController>();
         charAnimator = GetComponent<Animator>();
+        mainCamera = Camera.main.GetComponent<CameraFollow>();
         Physics.IgnoreLayerCollision(6, 3);
+        Physics.IgnoreLayerCollision(3, 3);
     }
     private void Update()
     {
@@ -96,7 +109,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
     private void SetAnimatorParameters()
     {
-        charAnimator.SetFloat("axisDistance", Vector2.Distance(joystickAxis, new Vector2()));
+        charAnimator.SetFloat("axisDistance", Vector2.Distance(joystickAxis, Vector2.zero));
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
@@ -137,31 +150,37 @@ public class PlayerBaseBehaviour : MonoBehaviour
         // Movimenta os npcs derrubados até a pilha
         foreach (Transform t in enemyToStack)
         {
-            Vector3 newPos = stackPosition.position;
-            newPos.y += enemyStack.Count * .8f;
+            Vector3 newPos = enemyStack.Count > 0 ? enemyStack[enemyStack.Count - 1].transform.position + enemyStack[enemyStack.Count - 1].up * stackDistance : stackPosition.position;
             t.position = Vector3.Lerp(t.position, newPos, stackSpeed * Time.deltaTime);
-            if(Vector3.Distance(t.position, newPos) < 1f)
+            if(Vector3.Distance(t.position, newPos) < 2)
             {
                 enemyToStack.Remove(t);
-                enemyStack.Push(t.parent);
+                enemyStack.Add(t.parent);
                 t.parent.position = newPos;
                 t.position = newPos;
                 Rigidbody rig = t.GetComponent<Rigidbody>();
                 rig.isKinematic = true;
                 rig.freezeRotation = true;
+                t.gameObject.layer = 3;
+                mainCamera.SetNewOffset(enemyStack.Count/3);
                 break;
             }
         }
 
         // Movimenta npcs na pilha para a posição correta de acordo com o index
-        int stackIndex = enemyStack.Count;
+        Vector3 refVelocity = Vector3.zero;
 
-        foreach (Transform t in enemyStack)
+        for (int i = 0; i < enemyStack.Count; i++)
         {
-            Vector3 newPos = stackPosition.position;
-            newPos.y += stackIndex * .8f;
-            t.position = Vector3.Lerp(t.position, newPos, stackSpeed * Time.deltaTime);
-            stackIndex--;
+            Vector3 newPos = i > 0 ? enemyStack[i -1].transform.position + enemyStack[i - 1].up * stackDistance : stackPosition.position;
+
+            enemyStack[i].position = Vector3.SmoothDamp(enemyStack[i].position, newPos, ref refVelocity, Mathf.Min(i, 2) * stackMovementSpeed * Time.deltaTime);
+
+            //Vector3 directionToRotate = i > 0 ? enemyStack[i - 1].transform.position - enemyStack[i - 1].transform.position + enemyStack[i - 1].up * stackDistance : Vector3.zero;
+
+            //Quaternion newRotation = Quaternion.LookRotation(directionToRotate, Vector3.up);
+            //enemyStack[i].rotation = Quaternion.RotateTowards(enemyStack[i].rotation, newRotation, 100 * Time.deltaTime);
+
         }
     }
 }
