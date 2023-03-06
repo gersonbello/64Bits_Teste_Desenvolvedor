@@ -46,6 +46,15 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private float stackMovementSpeed;
 
     [SerializeField]
+    [Tooltip("Velocidade em que a velocidade da unidade é multiplicada de acordo com a posição na pilha")]
+    [Range(0, 1)]
+    private float stackSpeedReduction;
+
+    [SerializeField]
+    [Tooltip("Velocidade em que a pilha de inimigos gira e recebe inércia")]
+    private float stackRotationSpeed;
+
+    [SerializeField]
     [Tooltip("Distância entre objetos da pilha")]
     private float stackDistance;
 
@@ -172,14 +181,20 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
         for (int i = 0; i < enemyStack.Count; i++)
         {
-            Vector3 newPos = i > 0 ? enemyStack[i -1].transform.position + enemyStack[i - 1].up * stackDistance : stackPosition.position;
+            Vector3 newPos = i > 0 ? 
+                enemyStack[i -1].transform.position + enemyStack[i - 1].up * stackDistance :
+                stackPosition.position;
 
-            enemyStack[i].position = Vector3.SmoothDamp(enemyStack[i].position, newPos, ref refVelocity, Mathf.Min(i, 2) * stackMovementSpeed * Time.deltaTime);
+            enemyStack[i].position = Vector3.SmoothDamp(enemyStack[i].position, newPos, ref refVelocity, (1 + i * stackSpeedReduction) * stackMovementSpeed * Time.deltaTime /
+                Mathf.Max(1, Vector3.Distance(enemyStack[i].position, newPos)));
 
-            //Vector3 directionToRotate = i > 0 ? enemyStack[i - 1].transform.position - enemyStack[i - 1].transform.position + enemyStack[i - 1].up * stackDistance : Vector3.zero;
-
-            //Quaternion newRotation = Quaternion.LookRotation(directionToRotate, Vector3.up);
-            //enemyStack[i].rotation = Quaternion.RotateTowards(enemyStack[i].rotation, newRotation, 100 * Time.deltaTime);
+            // Renova a posição desejada, levando em conta a parte superior do item abaixo e rotaciona de forma correta
+            newPos = i > 0 ?
+                 enemyStack[i - 1].transform.position - enemyStack[i - 1].up / stackDistance :
+                 transform.position;
+            Vector3 directionToRotate = i > 0 ? (newPos - enemyStack[i].position) : Vector3.zero;
+            Quaternion newRotation = Quaternion.LookRotation(Vector3.forward, -directionToRotate);
+            enemyStack[i].rotation = Quaternion.RotateTowards(enemyStack[i].rotation, newRotation, stackRotationSpeed);
 
         }
     }
