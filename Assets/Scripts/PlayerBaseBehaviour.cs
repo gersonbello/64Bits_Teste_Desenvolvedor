@@ -46,9 +46,9 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private float stackMovementSpeed;
 
     [SerializeField]
-    [Tooltip("Velocidade em que a velocidade da unidade é multiplicada de acordo com a posição na pilha")]
-    [Range(0, 1)]
-    private float stackSpeedReduction;
+    [Tooltip("Velocidade em que a velocidade da unidade é multiplicada para mover-se mais suavemente quanto mais distânte do ínicio da pilha")]
+    [Range(0, 5)]
+    private float stackSpeedMultiplier;
 
     [SerializeField]
     [Tooltip("Velocidade em que a pilha de inimigos gira e recebe inércia")]
@@ -127,7 +127,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
     private void OnTriggerEnter(Collider col)
     {
-        if (col.transform.CompareTag("Enemy"))
+        if (col.transform.CompareTag("Enemy") && enemyToStack.Count + enemyStack.Count < maxEnemyStack)
         {
             charAnimator.SetTrigger("punch");
             col.transform.GetComponent<Animator>().enabled = false;
@@ -165,12 +165,15 @@ public class PlayerBaseBehaviour : MonoBehaviour
             {
                 enemyToStack.Remove(t);
                 enemyStack.Add(t.parent);
-                t.parent.position = newPos;
-                t.position = newPos;
+
                 Rigidbody rig = t.GetComponent<Rigidbody>();
                 rig.isKinematic = true;
                 rig.freezeRotation = true;
+
+                t.parent.position = newPos;
+                t.position = newPos;
                 t.gameObject.layer = 3;
+
                 mainCamera.SetNewOffset(enemyStack.Count/3);
                 break;
             }
@@ -179,23 +182,22 @@ public class PlayerBaseBehaviour : MonoBehaviour
         // Movimenta npcs na pilha para a posição correta de acordo com o index
         Vector3 refVelocity = Vector3.zero;
 
-        for (int i = 0; i < enemyStack.Count; i++)
+        if (enemyStack.Count > 0) enemyStack[0].transform.position = stackPosition.position;
+        for (int i = 1; i < enemyStack.Count; i++)
         {
-            Vector3 newPos = i > 0 ? 
-                enemyStack[i -1].transform.position + enemyStack[i - 1].up * stackDistance :
-                stackPosition.position;
+            Vector3 newPos = enemyStack[i - 1].transform.position + enemyStack[i - 1].up * stackDistance;
 
-            enemyStack[i].position = Vector3.SmoothDamp(enemyStack[i].position, newPos, ref refVelocity, (1 + i * stackSpeedReduction) * stackMovementSpeed * Time.deltaTime /
+            enemyStack[i].position = Vector3.SmoothDamp(enemyStack[i].position, newPos, ref refVelocity,
+                // Cria movimentação mais lenta para objetos mais acima da pilha
+                (Mathf.Max(1, (1 + i * stackSpeedMultiplier) / enemyStack.Count)) * stackMovementSpeed * Time.deltaTime /
+                // Cria movimentação mais rápida para objetos mais distântes da posição ideal da pilha
                 Mathf.Max(1, Vector3.Distance(enemyStack[i].position, newPos)));
 
             // Renova a posição desejada, levando em conta a parte superior do item abaixo e rotaciona de forma correta
-            newPos = i > 0 ?
-                 enemyStack[i - 1].transform.position - enemyStack[i - 1].up / stackDistance :
-                 transform.position;
-            Vector3 directionToRotate = i > 0 ? (newPos - enemyStack[i].position) : Vector3.zero;
+            newPos = enemyStack[i - 1].transform.position;
+            Vector3 directionToRotate = (newPos - enemyStack[i].position);
             Quaternion newRotation = Quaternion.LookRotation(Vector3.forward, -directionToRotate);
             enemyStack[i].rotation = Quaternion.RotateTowards(enemyStack[i].rotation, newRotation, stackRotationSpeed);
-
         }
     }
 }

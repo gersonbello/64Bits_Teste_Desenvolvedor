@@ -925,9 +925,9 @@ MonoBehaviour:
   maxEnemyStack: 10
   stackWaitTime: 1
   stackSpeed: 10
-  stackMovementSpeed: 1
-  stackSpeedReduction: 0.1
-  stackRotationSpeed: 1000
+  stackMovementSpeed: 0.5
+  stackSpeedMultiplier: 2
+  stackRotationSpeed: 5
   stackDistance: 0.5
   enemyStack: []
 --- !u!1001 &470148013
