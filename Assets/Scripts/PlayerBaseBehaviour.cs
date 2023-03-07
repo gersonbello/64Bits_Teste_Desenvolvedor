@@ -1,13 +1,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerBaseBehaviour : MonoBehaviour
 {
+    #region References
     private CharacterController charController;
     private Animator charAnimator;
     private CameraFollow mainCamera;
-
+    #endregion
+    #region Player Settings
     [Header("Player Settings")]
     [Space(5)]
 
@@ -21,7 +24,8 @@ public class PlayerBaseBehaviour : MonoBehaviour
     [SerializeField]
     [Tooltip("Força do soco")]
     private float punchForce;
-
+    #endregion
+    #region Stack Settings
     [Header("Stack Settings")]
     [Space(5)]
 
@@ -58,16 +62,16 @@ public class PlayerBaseBehaviour : MonoBehaviour
     [Tooltip("Distância entre objetos da pilha")]
     private float stackDistance;
 
-    private Vector2 joystickAxis;
-    private Vector3 moveDirection;
-
-
     private List<Transform> enemyToStack = new List<Transform>();
 
     [SerializeField]
     private List<Transform> enemyStack = new List<Transform>();
 
-    private void Awake()
+    #endregion
+
+    private Vector2 joystickAxis;
+    private Vector3 moveDirection;
+    private void Start()
     {
         charController = GetComponent<CharacterController>();
         charAnimator = GetComponent<Animator>();
@@ -83,10 +87,14 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private void FixedUpdate()
     {
         charController.Move(GetMovementDirection() * moveSpeed * Time.deltaTime);
-        if (joystickAxis.magnitude != 0) RotateCharacterToDirection(GetMovementDirection());
+        if (joystickAxis.magnitude != 0)
+        {
+           transform.RotateToDirection(GetMovementDirection(), Vector3.up, rotateSpeed);
+        }
         SetStackPosition();
     }
 
+    #region Movement & Animations
     /// <summary>
     /// Recebe os valores do joystick em um vetor
     /// </summary>
@@ -101,41 +109,20 @@ public class PlayerBaseBehaviour : MonoBehaviour
     /// </summary>
     private Vector3 GetMovementDirection()
     {
-        moveDirection.x = joystickAxis.x;
-        moveDirection.z = joystickAxis.y;
+        Vector3 newMoveDirection = joystickAxis.x * mainCamera.transform.right;
+        newMoveDirection += joystickAxis.y * mainCamera.transform.forward;
+        newMoveDirection.y = 0;
+        moveDirection = newMoveDirection;
 
         return moveDirection;
     }
-    /// <summary>
-    /// Rotaciona o personagem na dire��o desejada na velocidade configurada
-    /// </summary>
-    /// <param name="directionToRotate"></param>
-    private void RotateCharacterToDirection(Vector3 directionToRotate)
-    {
-        Quaternion newRotation = Quaternion.LookRotation(directionToRotate, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, newRotation, rotateSpeed * Time.deltaTime);
-    }
-
     private void SetAnimatorParameters()
     {
         charAnimator.SetFloat("axisDistance", Vector2.Distance(joystickAxis, Vector2.zero));
     }
+    #endregion
 
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-    }
-
-    private void OnTriggerEnter(Collider col)
-    {
-        if (col.transform.CompareTag("Enemy") && enemyToStack.Count + enemyStack.Count < maxEnemyStack)
-        {
-            charAnimator.SetTrigger("punch");
-            col.transform.GetComponent<Animator>().enabled = false;
-            Rigidbody[] enemyRigs = col.transform.GetComponentsInChildren<Rigidbody>();
-            StartCoroutine(KillEnemy(enemyRigs, col));
-        }
-    }
-
+    #region Punch and Stack
     private IEnumerator KillEnemy(Rigidbody[] enemyRigs, Collider col)
     {
         yield return new WaitForSeconds(0.15f);
@@ -180,9 +167,11 @@ public class PlayerBaseBehaviour : MonoBehaviour
         }
 
         // Movimenta npcs na pilha para a posição correta de acordo com o index
+
         Vector3 refVelocity = Vector3.zero;
 
         if (enemyStack.Count > 0) enemyStack[0].transform.position = stackPosition.position;
+
         for (int i = 1; i < enemyStack.Count; i++)
         {
             Vector3 newPos = enemyStack[i - 1].transform.position + enemyStack[i - 1].up * stackDistance;
@@ -196,8 +185,47 @@ public class PlayerBaseBehaviour : MonoBehaviour
             // Renova a posição desejada, levando em conta a parte superior do item abaixo e rotaciona de forma correta
             newPos = enemyStack[i - 1].transform.position;
             Vector3 directionToRotate = (newPos - enemyStack[i].position);
-            Quaternion newRotation = Quaternion.LookRotation(Vector3.forward, -directionToRotate);
-            enemyStack[i].rotation = Quaternion.RotateTowards(enemyStack[i].rotation, newRotation, stackRotationSpeed);
+            enemyStack[i].transform.RotateToDirection(Vector3.forward, -directionToRotate, stackRotationSpeed);
         }
     }
+
+    #endregion
+
+    #region Collision
+    private void OnTriggerEnter(Collider col)
+    {
+        if (col.transform.CompareTag("Enemy") && enemyToStack.Count + enemyStack.Count < maxEnemyStack)
+        {
+            charAnimator.SetTrigger("punch");
+            col.transform.GetComponent<Animator>().enabled = false;
+            Rigidbody[] enemyRigs = col.transform.GetComponentsInChildren<Rigidbody>();
+            StartCoroutine(KillEnemy(enemyRigs, col));
+        }
+        if (col.transform.CompareTag("Button"))
+        {
+            StartCoroutine(AnimateButton(col.GetComponentInChildren<Mask>().GetComponent<Image>(), col.transform, 1, new Vector3(1.1f, 1.1f, 1.1f)));
+        }
+    }
+    private void OnTriggerExit(Collider col)
+    {
+        if (col.transform.CompareTag("Button"))
+        {
+            StopAllCoroutines();
+            col.transform.localScale = new Vector3(1, 1, 1);
+            col.GetComponentInChildren<Mask>().GetComponent<Image>().fillAmount = 0;
+        }
+    }
+
+    private IEnumerator AnimateButton(Image mask, Transform buttonTransform, float desiredFill, Vector3 newScale)
+    {
+        while (mask.fillAmount != desiredFill) 
+        {
+            buttonTransform.transform.localScale = Vector3.Lerp(buttonTransform.transform.localScale, newScale, 2 * Time.deltaTime);
+            mask.fillAmount = Mathf.MoveTowards(mask.fillAmount, desiredFill, 1.25f * Time.deltaTime);
+            yield return null;
+        }
+        yield return null;
+    }
+
+    #endregion
 }
