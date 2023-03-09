@@ -88,7 +88,7 @@ public class EnemySpawner : MonoBehaviour
     {
         float spawnDistance = Vector3.Distance(followTarget.position, Camera.main.ViewportToWorldPoint(new Vector3(1, 1, 0))) * 1.1f;
         Vector3 spawnPos = new Vector3(
-            followTarget.position.x + UnityEngine.Random.Range(-spawnDistance, spawnDistance), gc.transform.position.y,
+            followTarget.position.x + UnityEngine.Random.Range(-spawnDistance, spawnDistance), 0,
             followTarget.position.z + UnityEngine.Random.Range(-spawnDistance, spawnDistance));
         gc.transform.position = spawnPos;
         gc.transform.forward = (followTarget.position - gc.transform.position).normalized;

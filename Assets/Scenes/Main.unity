@@ -7069,8 +7069,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2e8b8c02c2456842b3f19285509fee8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sellMoveSpeed: 5
-  maxSellMoveSpeed: 20
+  sellMoveSpeed: 2
+  maxSellMoveSpeed: 6
 --- !u!1 &1327785947
 GameObject:
   m_ObjectHideFlags: 0
