@@ -5,6 +5,10 @@ using UnityEngine.UI;
 
 public class PlayerBaseBehaviour : MonoBehaviour
 {
+    #region Variables
+
+    _GameController gc;
+
     #region References
     private CharacterController charController;
     private Animator charAnimator;
@@ -24,6 +28,10 @@ public class PlayerBaseBehaviour : MonoBehaviour
     [SerializeField]
     [Tooltip("Força do soco")]
     private float punchForce;
+
+    [SerializeField]
+    [Tooltip("Material que terá a cor alterada")]
+    private Material playerSkinMaterial;
     #endregion
     #region Stack Settings
     [Header("Stack Settings")]
@@ -33,9 +41,10 @@ public class PlayerBaseBehaviour : MonoBehaviour
     [Tooltip("Força do soco")]
     private Transform stackPosition;
 
-    [SerializeField]
     [Tooltip("Quantidade máxima da pilha de npcs nas costas do personagem")]
-    private int maxEnemyStack;
+    public int maxEnemyStack { get; private set; } = 5;
+
+    private int currentStackCount;
 
     [SerializeField]
     [Tooltip("Tempo até o inimigo ser adicionado à pilha")]
@@ -59,18 +68,26 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private float stackRotationSpeed;
 
     [SerializeField]
+    [Tooltip("Velocidade em que a pilha de inimigos gira na direção do personagem")]
+    private float stackLookRotationSpeed;
+
+    [SerializeField]
     [Tooltip("Distância entre objetos da pilha")]
     private float stackDistance;
 
     private List<Transform> enemyToStack = new List<Transform>();
 
     [SerializeField]
-    private List<Transform> enemyStack = new List<Transform>();
+    public List<Transform> enemyStack { get; private set; } = new List<Transform>();
 
     #endregion
 
     private Vector2 joystickAxis;
     private Vector3 moveDirection;
+
+    #endregion
+
+    #region Unity Base Behaviours
     private void Start()
     {
         charController = GetComponent<CharacterController>();
@@ -78,6 +95,10 @@ public class PlayerBaseBehaviour : MonoBehaviour
         mainCamera = Camera.main.GetComponent<CameraFollow>();
         Physics.IgnoreLayerCollision(6, 3);
         Physics.IgnoreLayerCollision(3, 3);
+
+        playerSkinMaterial.color = Color.white;
+
+        gc = _GameController.gameController;
     }
     private void Update()
     {
@@ -86,32 +107,39 @@ public class PlayerBaseBehaviour : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        charController.Move(GetMovementDirection() * moveSpeed * Time.deltaTime);
+        charController.Move(GetMovementDirection(mainCamera.transform) * moveSpeed * Time.deltaTime);
         if (joystickAxis.magnitude != 0)
         {
-           transform.RotateToDirection(GetMovementDirection(), Vector3.up, rotateSpeed);
+            Vector3 oldFoward = transform.forward;
+            transform.RotateToDirection(GetMovementDirection(mainCamera.transform), Vector3.up, rotateSpeed);
+            //StackRotate(Vector3.Angle(oldFoward, transform.forward));
         }
         SetStackPosition();
     }
+    #endregion
 
     #region Movement & Animations
     /// <summary>
     /// Recebe os valores do joystick em um vetor
     /// </summary>
     private void GetJoystickAxis()
-    {
-        joystickAxis.x = Input.GetAxisRaw("Horizontal");
-        joystickAxis.y = Input.GetAxisRaw("Vertical");
+    {       
+        joystickAxis = gc.joystick.GetJoystickAxis();
     }
 
     /// <summary>
     /// Retorna a dire��o de movimento do personagem baseado no joystick
     /// </summary>
-    private Vector3 GetMovementDirection()
+    private Vector3 GetMovementDirection(Transform relativeTransform)
     {
-        Vector3 newMoveDirection = joystickAxis.x * mainCamera.transform.right;
-        newMoveDirection += joystickAxis.y * mainCamera.transform.forward;
-        newMoveDirection.y = 0;
+        Vector3 relativeRight = relativeTransform.right;
+        relativeRight.y = 0;
+
+        Vector3 relativeFoward = relativeTransform.forward;
+        relativeFoward.y = 0;
+
+        Vector3 newMoveDirection = joystickAxis.x * relativeRight.normalized;
+        newMoveDirection += joystickAxis.y * relativeFoward.normalized;
         moveDirection = newMoveDirection;
 
         return moveDirection;
@@ -125,7 +153,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
     #region Punch and Stack
     private IEnumerator KillEnemy(Rigidbody[] enemyRigs, Collider col)
     {
-        yield return new WaitForSeconds(0.15f);
+        yield return new WaitForSeconds(0.1f);
         foreach (Rigidbody eRig in enemyRigs)
         {
             eRig.isKinematic = false;
@@ -135,7 +163,6 @@ public class PlayerBaseBehaviour : MonoBehaviour
         col.transform.gameObject.layer = 3;
 
         yield return new WaitForSeconds(stackWaitTime);
-
         enemyToStack.Add(col.transform.GetChild(0).transform);
     }
     /// <summary>
@@ -144,22 +171,28 @@ public class PlayerBaseBehaviour : MonoBehaviour
     private void SetStackPosition()
     {
         // Movimenta os npcs derrubados até a pilha
-        foreach (Transform t in enemyToStack)
+        for (int i = 0; i <  enemyToStack.Count; i++)
         {
-            Vector3 newPos = enemyStack.Count > 0 ? enemyStack[enemyStack.Count - 1].transform.position + enemyStack[enemyStack.Count - 1].up * stackDistance : stackPosition.position;
-            t.position = Vector3.Lerp(t.position, newPos, stackSpeed * Time.deltaTime);
-            if(Vector3.Distance(t.position, newPos) < 2)
+            Vector3 newPos = enemyStack.Count > 0 ?
+                enemyStack[enemyStack.Count - 1].transform.position + enemyStack[enemyStack.Count - 1].up * stackDistance + enemyStack[enemyStack.Count - 1].up * (i + 1) :
+                stackPosition.position;
+            enemyToStack[i].position = Vector3.Lerp(enemyToStack[i].position, newPos, stackSpeed * Time.deltaTime);
+            if(Vector3.Distance(enemyToStack[i].position, newPos) < 2)
             {
+                Transform t = enemyToStack[i];
                 enemyToStack.Remove(t);
                 enemyStack.Add(t.parent);
+
+                t.parent.position = newPos;
 
                 Rigidbody rig = t.GetComponent<Rigidbody>();
                 rig.isKinematic = true;
                 rig.freezeRotation = true;
 
-                t.parent.position = newPos;
-                t.position = newPos;
                 t.gameObject.layer = 3;
+
+                t.parent.forward = transform.forward;
+                t.localPosition = Vector3.zero;
 
                 mainCamera.SetNewOffset(enemyStack.Count/3);
                 break;
@@ -170,7 +203,12 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
         Vector3 refVelocity = Vector3.zero;
 
-        if (enemyStack.Count > 0) enemyStack[0].transform.position = stackPosition.position;
+        if (enemyStack.Count > 0)
+        {
+            enemyStack[0].transform.position = stackPosition.position;
+            enemyStack[0].transform.up = transform.up;
+        }
+
 
         for (int i = 1; i < enemyStack.Count; i++)
         {
@@ -182,11 +220,21 @@ public class PlayerBaseBehaviour : MonoBehaviour
                 // Cria movimentação mais rápida para objetos mais distântes da posição ideal da pilha
                 Mathf.Max(1, Vector3.Distance(enemyStack[i].position, newPos)));
 
-            // Renova a posição desejada, levando em conta a parte superior do item abaixo e rotaciona de forma correta
-            newPos = enemyStack[i - 1].transform.position;
+            // Rotaciona na direção do item anterior na pilha
+            newPos = enemyStack[i - 1].position;
             Vector3 directionToRotate = (newPos - enemyStack[i].position);
-            enemyStack[i].transform.RotateToDirection(Vector3.forward, -directionToRotate, stackRotationSpeed);
+            enemyStack[i].up = Vector3.Lerp(enemyStack[i].up, -directionToRotate, stackRotationSpeed * Time.deltaTime);
+
         }
+    }
+
+    public List<Transform> GetAndClearStackList()
+    {
+        List<Transform> enemyList = new List<Transform>();
+        foreach (Transform t in enemyStack) enemyList.Add(t);
+        currentStackCount = 0;
+        enemyStack.Clear();
+        return enemyList;
     }
 
     #endregion
@@ -194,38 +242,38 @@ public class PlayerBaseBehaviour : MonoBehaviour
     #region Collision
     private void OnTriggerEnter(Collider col)
     {
-        if (col.transform.CompareTag("Enemy") && enemyToStack.Count + enemyStack.Count < maxEnemyStack)
+        if (col.transform.CompareTag("Enemy") && currentStackCount < maxEnemyStack)
         {
+            currentStackCount++;
             charAnimator.SetTrigger("punch");
             col.transform.GetComponent<Animator>().enabled = false;
             Rigidbody[] enemyRigs = col.transform.GetComponentsInChildren<Rigidbody>();
             StartCoroutine(KillEnemy(enemyRigs, col));
         }
-        if (col.transform.CompareTag("Button"))
+        if (col.transform.CompareTag("Trigger"))
         {
-            StartCoroutine(AnimateButton(col.GetComponentInChildren<Mask>().GetComponent<Image>(), col.transform, 1, new Vector3(1.1f, 1.1f, 1.1f)));
+            col.GetComponent<TriggerEvent>().EnterTriggerEvents();
         }
     }
     private void OnTriggerExit(Collider col)
     {
-        if (col.transform.CompareTag("Button"))
+        if (col.transform.CompareTag("Trigger"))
         {
-            StopAllCoroutines();
+            col.GetComponent<TriggerEvent>().ExitTriggerEvents();
             col.transform.localScale = new Vector3(1, 1, 1);
             col.GetComponentInChildren<Mask>().GetComponent<Image>().fillAmount = 0;
         }
     }
-
-    private IEnumerator AnimateButton(Image mask, Transform buttonTransform, float desiredFill, Vector3 newScale)
-    {
-        while (mask.fillAmount != desiredFill) 
-        {
-            buttonTransform.transform.localScale = Vector3.Lerp(buttonTransform.transform.localScale, newScale, 2 * Time.deltaTime);
-            mask.fillAmount = Mathf.MoveTowards(mask.fillAmount, desiredFill, 1.25f * Time.deltaTime);
-            yield return null;
-        }
-        yield return null;
-    }
-
     #endregion
+
+    public void LevelUP()
+    {
+        punchForce *= 1.25f;
+        punchForce = Mathf.Min(punchForce, 5000);
+        moveSpeed *= 1.05f;
+        moveSpeed = Mathf.Min(moveSpeed, 12);
+        maxEnemyStack += 5;
+        maxEnemyStack = Mathf.Min(maxEnemyStack, 100);
+        playerSkinMaterial.color = Random.ColorHSV();
+    }
 }

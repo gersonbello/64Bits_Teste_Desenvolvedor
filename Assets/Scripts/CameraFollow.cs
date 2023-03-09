@@ -22,12 +22,12 @@ public class CameraFollow : MonoBehaviour
     private void FixedUpdate()
     {
         desiredPosition = target.transform.position + currentCameraOffset;
-        transform.position = Vector3.Lerp(transform.position, desiredPosition, cameraMoveSpeed);
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, cameraMoveSpeed * Time.deltaTime * Mathf.Max(1, Vector3.Distance(desiredPosition, transform.position)));
     }
 
     public void SetNewOffset(int newOffsetNumber)
     {
         float correctOffset = Mathf.Min(newOffsetNumber, 10);
-        currentCameraOffset = cameraOffset + new Vector3(0, correctOffset, -correctOffset);
+        currentCameraOffset = cameraOffset - correctOffset * transform.forward;
     }
 }
