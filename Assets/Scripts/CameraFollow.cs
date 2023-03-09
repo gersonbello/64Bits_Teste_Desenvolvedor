@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class CameraFollow : MonoBehaviour
@@ -29,5 +32,18 @@ public class CameraFollow : MonoBehaviour
     {
         float correctOffset = Mathf.Min(newOffsetNumber, 10);
         currentCameraOffset = cameraOffset - correctOffset * transform.forward;
+    }
+
+    public IEnumerator CameraShake(float shakeTime, float shakeAmount)
+    {
+        float currentTime = 0;
+        while(currentTime < shakeTime)
+        {
+            transform.position += new Vector3(
+                UnityEngine.Random.Range(-shakeAmount, shakeAmount) ,
+                UnityEngine.Random.Range(-shakeAmount, shakeAmount), 0);
+            currentTime += Time.deltaTime;
+            yield return null;
+        }
     }
 }

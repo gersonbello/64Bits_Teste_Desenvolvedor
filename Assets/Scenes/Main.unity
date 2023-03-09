@@ -2239,7 +2239,7 @@ MonoBehaviour:
   moveSpeed: 5
   rotateSpeed: 500
   punchForce: 1000
-  playerSkinMaterial: {fileID: 2100000, guid: 64c9de52d7042cf40aa772b5bfd571a5, type: 2}
+  playerSkinRenderer: {fileID: 75344998559863282}
   stackPosition: {fileID: 26859868}
   stackWaitTime: 1
   stackSpeed: 10
@@ -13470,7 +13470,7 @@ Transform:
   m_GameObject: {fileID: 6446014709487166192}
   m_LocalRotation: {x: 0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: -0, y: 0.17953403, z: -0.0000060287452}
-  m_LocalScale: {x: 1.2, y: 1, z: 1.2}
+  m_LocalScale: {x: 1.2318001, y: 1.0265, z: 1.2318001}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 724723045115879225}
@@ -13540,7 +13540,7 @@ Transform:
   m_GameObject: {fileID: 3251662908330513522}
   m_LocalRotation: {x: -0.15022063, y: -0.0005537885, z: 0.0035003116, w: 0.98864615}
   m_LocalPosition: {x: 0.000011302258, y: 0.2806725, z: -0.0000061390247}
-  m_LocalScale: {x: 1, y: 1, z: 1.3}
+  m_LocalScale: {x: 1.0632, y: 1, z: 1.53257}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9206391536831919651}
@@ -14523,7 +14523,7 @@ Transform:
   m_GameObject: {fileID: 4342253606775203654}
   m_LocalRotation: {x: -0.15025422, y: -0.0001925793, z: 0.0012350391, w: 0.9886466}
   m_LocalPosition: {x: 0.000012794206, y: 0.2806725, z: -0.000005922488}
-  m_LocalScale: {x: 1, y: 1, z: 1.3}
+  m_LocalScale: {x: 1.0632, y: 1, z: 1.53257}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8619751591743281596}

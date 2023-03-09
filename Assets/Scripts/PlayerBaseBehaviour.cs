@@ -31,6 +31,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
 
     [SerializeField]
     [Tooltip("Material que terá a cor alterada")]
+    private SkinnedMeshRenderer playerSkinRenderer;
     private Material playerSkinMaterial;
     #endregion
     #region Stack Settings
@@ -96,7 +97,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
         Physics.IgnoreLayerCollision(6, 3);
         Physics.IgnoreLayerCollision(3, 3);
 
-        playerSkinMaterial.color = Color.white;
+        playerSkinMaterial = playerSkinRenderer.material;
 
         gc = _GameController.gameController;
     }
@@ -156,6 +157,7 @@ public class PlayerBaseBehaviour : MonoBehaviour
         yield return new WaitForSeconds(0.1f);
         foreach (Rigidbody eRig in enemyRigs)
         {
+            col.transform.forward = transform.position - col.transform.position;
             eRig.isKinematic = false;
             eRig.AddForce((transform.forward + Vector3.up * .5f) * punchForce);
         }
@@ -244,6 +246,8 @@ public class PlayerBaseBehaviour : MonoBehaviour
     {
         if (col.transform.CompareTag("Enemy") && currentStackCount < maxEnemyStack)
         {
+            StartCoroutine(mainCamera.CameraShake(.1f, .1f));
+
             currentStackCount++;
             charAnimator.SetTrigger("punch");
             col.transform.GetComponent<Animator>().enabled = false;
