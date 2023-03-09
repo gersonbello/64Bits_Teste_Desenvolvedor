@@ -31,7 +31,7 @@ public class BuyAndSell : MonoBehaviour
     void SellMoveStack()
     {
         List<Transform> sellList = gc.player.GetAndClearStackList();
-        gc.AddMoney(sellList.Count);
+        gc.AddMoney(sellList.Count * gc.sellPrice);
         gc.StartCoroutine(gc.MoveTransformPosition(sellList, transform.position, Mathf.Min(sellMoveSpeed * sellList.Count, maxSellMoveSpeed)));
     }
     #endregion

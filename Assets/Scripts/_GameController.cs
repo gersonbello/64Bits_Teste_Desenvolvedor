@@ -28,6 +28,12 @@ public class _GameController : MonoBehaviour
         get { if (_joystick == null) _joystick = FindObjectOfType<Joystick>(); return _joystick; }
     }
 
+    private static HUD _hud;
+    public HUD hud
+    {
+        get { if (_hud == null) _hud = FindObjectOfType<HUD>(); return _hud; }
+    }
+
     public int money { get; private set; }
 
     public int upgradePrice { get; private set; } = 5;
@@ -38,7 +44,7 @@ public class _GameController : MonoBehaviour
     {
         if(money >= upgradePrice)
         {
-            money -= upgradePrice;
+            AddMoney(-upgradePrice);
             player.LevelUP();
             upgradePrice *= 2;
             sellPrice += 2;
@@ -47,7 +53,12 @@ public class _GameController : MonoBehaviour
 
     public void AddMoney(int moneyToAdd)
     {
-        money += moneyToAdd * sellPrice;
+        money += moneyToAdd;
+        if (moneyToAdd != 0)
+        {
+            hud.StopAllCoroutines();
+            hud.StartCoroutine(hud.MoneyAdded(moneyToAdd));
+        }
     }
 
     public IEnumerator MoveTransformPosition(List<Transform> transforms, Vector3 targetPosition, float moveSpeed)
